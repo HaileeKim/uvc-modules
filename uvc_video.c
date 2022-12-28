@@ -294,7 +294,6 @@ static int uvc_get_video_ctrl(struct uvc_streaming *stream,
 		goto out;
 	}
 
-
 	ctrl->bmHint = le16_to_cpup((__le16 *)&data[0]);
 	ctrl->bFormatIndex = data[2];
 	ctrl->bFrameIndex = data[3];
@@ -305,7 +304,7 @@ static int uvc_get_video_ctrl(struct uvc_streaming *stream,
 	ctrl->wCompWindowSize = le16_to_cpup((__le16 *)&data[14]);
 	ctrl->wDelay = le16_to_cpup((__le16 *)&data[16]);
 	ctrl->dwMaxVideoFrameSize = get_unaligned_le32(&data[18]);
-	ctrl->dwMaxPayloadTransferSize = 30720;
+	ctrl->dwMaxPayloadTransferSize = get_unaligned_le32(&data[22]);
 
 	if (size >= 34) {
 		ctrl->dwClockFrequency = get_unaligned_le32(&data[26]);
@@ -344,9 +343,6 @@ static int uvc_set_video_ctrl(struct uvc_streaming *stream,
 	if (data == NULL)
 		return -ENOMEM;
 
-
-
-
 	*(__le16 *)&data[0] = cpu_to_le16(ctrl->bmHint);
 	data[2] = ctrl->bFormatIndex;
 	data[3] = ctrl->bFrameIndex;
@@ -357,7 +353,7 @@ static int uvc_set_video_ctrl(struct uvc_streaming *stream,
 	*(__le16 *)&data[14] = cpu_to_le16(ctrl->wCompWindowSize);
 	*(__le16 *)&data[16] = cpu_to_le16(ctrl->wDelay);
 	put_unaligned_le32(ctrl->dwMaxVideoFrameSize, &data[18]);
-	put_unaligned_le32(30720, &data[22]);
+	put_unaligned_le32(ctrl->dwMaxPayloadTransferSize, &data[22]);
 
 	if (size >= 34) {
 		put_unaligned_le32(ctrl->dwClockFrequency, &data[26]);
@@ -1387,11 +1383,9 @@ static void uvc_video_decode_isoc(struct uvc_urb *uvc_urb,
 		/* Decode the payload header. */
 		mem = urb->transfer_buffer + urb->iso_frame_desc[i].offset;
 		do {
-			if (urb->iso_frame_desc[i].actual_length < 15)
-				stream->last_fid ^= UVC_STREAM_FID;
 			ret = uvc_video_decode_start(stream, buf, mem,
 				urb->iso_frame_desc[i].actual_length);
-			if (ret == -EAGAIN )
+			if (ret == -EAGAIN)
 				uvc_video_next_buffers(stream, &buf, &meta_buf);
 		} while (ret == -EAGAIN);
 
@@ -1410,7 +1404,6 @@ static void uvc_video_decode_isoc(struct uvc_urb *uvc_urb,
 
 		if (buf->state == UVC_BUF_STATE_READY)
 			uvc_video_next_buffers(stream, &buf, &meta_buf);
-
 	}
 }
 
