@@ -1386,9 +1386,9 @@ static void uvc_video_decode_isoc(struct uvc_urb *uvc_urb,
 
 		/* Decode the payload header. */
 		mem = urb->transfer_buffer + urb->iso_frame_desc[i].offset;
+		if (urb->iso_frame_desc[i].actual_length < 13)
+			stream->last_fid ^= UVC_STREAM_FID;
 		do {
-			if (urb->iso_frame_desc[i].actual_length < 15)
-				stream->last_fid ^= UVC_STREAM_FID;
 			ret = uvc_video_decode_start(stream, buf, mem,
 				urb->iso_frame_desc[i].actual_length);
 			if (ret == -EAGAIN )
